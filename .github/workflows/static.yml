@@ -15,22 +15,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Extract verified static application
-        run: unzip -q surveytrace-site.zip -d _site
+      - name: Verify and extract static application
+        run: |
+          echo '30954d5773f818a1f01f36ff373c2b5db1cdcaeedc301422f9ccfe60fbbb7cfd  surveytrace-site.zip' | sha256sum --check
+          unzip -q surveytrace-site.zip -d _site
+          test -f _site/index.html
+          test "$(find _site -type f | wc -l)" -eq 7
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
